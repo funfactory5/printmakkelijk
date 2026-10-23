@@ -1,0 +1,10 @@
+services:
+  printsite:
+    build: .
+    container_name: ender3s1-printsite
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+    restart: unless-stopped

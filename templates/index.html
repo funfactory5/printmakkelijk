@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrintMakkelijk</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="logo">🖨️</div>
+      <div><h1>PrintMakkelijk</h1><p>3D-modellen vinden voor jouw Ender 3 S1</p></div>
+    </header>
+
+    <section class="hero">
+      <h2>Wat wil je printen?</h2>
+      <form class="search" action="/" method="get">
+        <input name="q" value="{{ query }}" placeholder="Bijv. telefoonhouder, draak, organizer..." aria-label="Zoek een model">
+        <button type="submit">Zoeken</button>
+      </form>
+      {% if query %}
+      <h3>Zoek “{{ query }}” op modelwebsites</h3>
+      <p class="muted">Kies een site. Download daar een STL-bestand en upload het hieronder om verder te gaan.</p>
+      <div class="providers">
+        {% for item in links %}
+          <a class="provider" href="{{ item.url }}" target="_blank" rel="noopener noreferrer"><span>{{ item.name }}</span><strong>Modellen bekijken ↗</strong></a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="steps">
+      <h2>Zo werkt het</h2>
+      <div class="step"><b>1</b><div><strong>Zoek een model</strong><p>Zoek op een van de modelwebsites hierboven.</p></div></div>
+      <div class="step"><b>2</b><div><strong>Download als STL</strong><p>Kies STL als downloadformaat wanneer dat beschikbaar is.</p></div></div>
+      <div class="step"><b>3</b><div><strong>Maak printbestand</strong><p>Upload het STL-bestand. De slicer-koppeling moet door de beheerder eerst met het juiste Ender 3 S1-profiel worden ingesteld.</p></div></div>
+    </section>
+
+    <section class="upload">
+      <h2>STL-bestand kiezen</h2>
+      <p class="muted">Voor Ender 3 S1 · PLA · nozzle 0,4 mm · laaghoogte 0,2 mm</p>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}<div class="notice">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+      {% endwith %}
+      <form action="/slice" method="post" enctype="multipart/form-data">
+        <label class="filelabel">Kies STL-bestand<input type="file" name="model" accept=".stl" required></label>
+        <button type="submit" class="printbutton">PRINTBESTAND MAKEN</button>
+      </form>
+      <p class="small">Let op: deze startversie maakt nog geen G-code. De juiste Cura-profielbestanden en start-/eind-G-code moeten worden toegevoegd voordat veilig printbare bestanden kunnen worden gemaakt.</p>
+    </section>
+    <footer>PrintMakkelijk · lokale hobbyserver</footer>
+  </main>
+</body>
+</html>
