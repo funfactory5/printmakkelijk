@@ -226,6 +226,10 @@ button.ghost.dark { background: rgba(15, 23, 42, .75); border-color: #334155; co
 .stats small { color: var(--muted); font-size: 11px; }
 .download { background: var(--brand); border-color: var(--brand); color: #fff; font-size: 16px; padding: 12px; }
 
+/* ---------- footer ---------- */
+.sitefoot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.sitefoot p { margin: 0 0 4px; }
+
 /* ---------- dialog & toasts ---------- */
 .help { border: 0; border-radius: 18px; padding: 22px; max-width: 520px; width: calc(100% - 32px); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
 .help::backdrop { background: rgba(15, 23, 42, .55); }
