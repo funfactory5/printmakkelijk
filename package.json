@@ -1,0 +1,14 @@
+{
+  "name": "printmakkelijk",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Zoek 3D-modellen en slice ze in je browser voor de Creality Ender-3 S1 (CuraEngine WebAssembly).",
+  "scripts": {
+    "start": "python3 -m http.server 8765 --directory site",
+    "test": "node tests/slice.test.cjs",
+    "test:e2e": "node tests/e2e.cjs http://localhost:8765/ && node tests/e2e-search.cjs http://localhost:8765/"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
