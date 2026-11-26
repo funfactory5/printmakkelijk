@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrintMakkelijk – slicer voor Ender-3 S1</title>
+  <meta name="description" content="Zoek 3D-modellen, slice ze direct in je browser en download G-code voor je Creality Ender-3 S1.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖨️</text></svg>">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.min.js",
+        "three/addons/": "./vendor/three/jsm/"
+      }
+    }
+  </script>
+  <script src="js/profile.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🖨️</span>
+      <div>
+        <h1>PrintMakkelijk</h1>
+        <p>Zoeken → slicen → printen, alles in je browser · Ender-3 S1</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="engineStatus" class="chip">⚙️ Slicer laden…</span>
+      <button class="ghost" id="helpBtn" type="button" aria-haspopup="dialog" aria-label="Hulp">❓<span class="lbl"> Hulp</span></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ LEFT: find models ============ -->
+    <aside class="panel find" aria-label="Modellen zoeken">
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="search" aria-selected="true">🔎 Zoeken</button>
+        <button role="tab" class="tab" data-tab="library" aria-selected="false">📚 Bibliotheek</button>
+        <button role="tab" class="tab" data-tab="open" aria-selected="false">📂 Openen</button>
+      </nav>
+
+      <section class="tabpane active" id="tab-search" role="tabpanel">
+        <form id="searchForm" class="searchbar">
+          <input id="searchInput" type="search" placeholder="Bijv. draak, telefoonhouder, vaas…" aria-label="Zoek een 3D-model" autocomplete="off">
+          <button type="submit" class="primary">Zoek</button>
+        </form>
+
+        <div id="tvSetup" class="callout" hidden>
+          <strong>🔵 Zoeken op Thingiverse in deze pagina</strong>
+          <p>Thingiverse heeft een gratis sleutel (App Token) nodig. Eenmalig instellen:</p>
+          <ol>
+            <li>Log in op <a href="https://www.thingiverse.com/apps/create" target="_blank" rel="noopener">thingiverse.com/apps/create</a></li>
+            <li>Kies <em>Desktop app</em>, vul een naam in (bijv. PrintMakkelijk) en maak de app.</li>
+            <li>Kopieer de <strong>App Token</strong> en plak hem hieronder.</li>
+          </ol>
+          <form id="tokenForm" class="row">
+            <input id="tokenInput" type="password" placeholder="Plak je Thingiverse App Token" autocomplete="off" aria-label="Thingiverse App Token">
+            <button class="primary" type="submit">Opslaan</button>
+          </form>
+          <p class="tiny">De token blijft alleen in deze browser bewaard.</p>
+        </div>
+
+        <div id="searchStatus" class="muted small"></div>
+        <div id="results" class="results"></div>
+        <button id="moreBtn" class="ghost wide" hidden>Meer resultaten</button>
+
+        <div class="sites">
+          <h3>Zoek ook op andere sites</h3>
+          <p class="muted small">Downloaden gaat daar. Laat PrintMakkelijk je Downloads-map volgen (tab 📂 Openen) en elk model wordt meteen gesliced ✨</p>
+          <div id="siteLinks" class="sitegrid"></div>
+        </div>
+      </section>
+
+      <section class="tabpane" id="tab-library" role="tabpanel">
+        <p class="muted small">Zelf gemaakte modellen die je kunt aanpassen. Werkt ook zonder internet.</p>
+        <div id="library" class="library"></div>
+      </section>
+
+      <section class="tabpane" id="tab-open" role="tabpanel">
+        <label class="dropzone" id="dropzone">
+          <input id="fileInput" type="file" multiple accept=".stl,.obj,.3mf,.zip">
+          <span class="dz-icon">⬇️</span>
+          <strong>Sleep een bestand hierheen</strong>
+          <span class="muted small">of klik om te kiezen · STL, OBJ, 3MF of ZIP</span>
+        </label>
+
+        <div class="card">
+          <h3>👀 Downloads-map volgen</h3>
+          <p class="muted small">Kies je Downloads-map. Download je daarna een model op Printables, MakerWorld of een andere site, dan verschijnt het hier vanzelf en wordt het direct gesliced.</p>
+          <div class="row">
+            <button id="watchBtn" class="primary" type="button">📂 Kies Downloads-map</button>
+            <button id="resumeWatchBtn" class="ghost" type="button" hidden>↻ Opnieuw volgen</button>
+          </div>
+          <p id="watchStatus" class="small"></p>
+          <p id="watchUnsupported" class="tiny" hidden>Map volgen werkt in Chrome en Edge op een computer. In andere browsers: sleep het gedownloade bestand hierboven.</p>
+        </div>
+
+        <div class="card">
+          <h3>🔗 Link plakken</h3>
+          <p class="muted small">Directe link naar een STL/3MF, een GitHub-bestand of een Thingiverse-pagina.</p>
+          <form id="urlForm" class="row">
+            <input id="urlInput" type="url" placeholder="https://…" aria-label="Link naar een model">
+            <button class="primary" type="submit">Laden</button>
+          </form>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ============ CENTER: 3D stage ============ -->
+    <section class="stage" aria-label="3D-weergave">
+      <div id="viewport" class="viewport"></div>
+
+      <div class="stage-top">
+        <div class="seg" role="group" aria-label="Weergave">
+          <button id="viewModel" class="active" type="button">🧊 Model</button>
+          <button id="viewGcode" type="button" disabled>🌈 Lagen</button>
+        </div>
+        <div class="row">
+          <button class="ghost dark" id="clearBtn" type="button" title="Bed leegmaken" hidden>🧹</button>
+          <button class="ghost dark" id="resetViewBtn" type="button" title="Camera terugzetten">🎯</button>
+        </div>
+      </div>
+
+      <div id="emptyHint" class="empty-hint">
+        <div>🖨️</div>
+        <strong>Nog geen model</strong>
+        <span>Zoek links een model, kies er een uit de bibliotheek of sleep een STL-bestand hierheen.</span>
+      </div>
+
+      <div id="objectBar" class="objectbar" hidden>
+        <div class="obj-title"><span id="objName">Model</span> <span id="objSize" class="muted"></span></div>
+        <div class="obj-tools">
+          <button type="button" data-act="rx" title="Draai om X">↻X</button>
+          <button type="button" data-act="ry" title="Draai om Y">↻Y</button>
+          <button type="button" data-act="rz" title="Draai 45° om Z">↻Z</button>
+          <button type="button" data-act="flat" title="Leg plat op grootste vlak">⬇ Plat</button>
+          <label class="scale" title="Schaal">
+            <input id="scaleInput" type="number" min="1" max="2000" step="1" value="100" aria-label="Schaal in procent">%
+          </label>
+          <button type="button" data-act="dup" title="Dupliceren">⧉</button>
+          <button type="button" data-act="arrange" title="Alles netjes neerzetten">▦</button>
+          <button type="button" data-act="del" class="danger" title="Verwijderen">🗑</button>
+        </div>
+        <div id="outsideWarn" class="warn" hidden>⚠️ Dit model past niet op het bed. Verklein of verplaats het.</div>
+      </div>
+
+      <div id="layerBar" class="layerbar" hidden>
+        <label for="layerSlider">Laag <strong id="layerLabel">0</strong></label>
+        <input id="layerSlider" type="range" min="0" max="0" value="0" aria-label="Laag">
+        <label class="check"><input id="onlyLayer" type="checkbox"> alleen deze laag</label>
+        <div id="legend" class="legend"></div>
+      </div>
+
+      <div id="dropOverlay" class="drop-overlay" hidden>⬇️ Laat los om te laden</div>
+    </section>
+
+    <!-- ============ RIGHT: settings + slice ============ -->
+    <aside class="panel settings" aria-label="Printinstellingen">
+      <h2>Printinstellingen</h2>
+      <p class="muted small">Creality Ender-3 S1 · nozzle 0,4 mm · 220×220×270</p>
+
+      <div class="field">
+        <span class="label">Materiaal</span>
+        <div class="seg light" id="materialSeg"></div>
+      </div>
+      <div class="field">
+        <span class="label">Kwaliteit</span>
+        <div class="seg light" id="qualitySeg"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="infill">Vulling <strong id="infillVal">15%</strong></label>
+        <input id="infill" type="range" min="0" max="100" step="5" value="15">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label class="label" for="walls">Wanden</label>
+          <select id="walls"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+        </div>
+        <div class="field">
+          <label class="label" for="adhesion">Hechting</label>
+          <select id="adhesion">
+            <option value="skirt">Skirt (rand)</option>
+            <option value="brim">Brim (extra grip)</option>
+            <option value="none">Geen</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="supports">Support</label>
+        <select id="supports">
+          <option value="none">Geen support</option>
+          <option value="buildplate">Alleen vanaf het bed</option>
+          <option value="everywhere">Overal</option>
+        </select>
+      </div>
+
+      <details class="advanced">
+        <summary>🔧 Geavanceerd</summary>
+        <div class="grid2">
+          <div class="field">
+            <label class="label" for="nozzleTemp">Nozzle °C</label>
+            <input id="nozzleTemp" type="number" min="170" max="260" step="5" placeholder="auto">
+          </div>
+          <div class="field">
+            <label class="label" for="bedTemp">Bed °C</label>
+            <input id="bedTemp" type="number" min="0" max="110" step="5" placeholder="auto">
+          </div>
+          <div class="field">
+            <label class="label" for="speed">Snelheid mm/s</label>
+            <input id="speed" type="number" min="10" max="150" step="5" placeholder="auto">
+          </div>
+          <div class="field">
+            <label class="label" for="fan">Ventilator %</label>
+            <input id="fan" type="number" min="0" max="100" step="10" placeholder="auto">
+          </div>
+        </div>
+        <label class="check"><input id="vase" type="checkbox"> 🏺 Vaasmodus (één spiraalwand)</label>
+        <label class="check"><input id="ironing" type="checkbox"> ✨ Strijken (gladde bovenkant)</label>
+        <label class="check"><input id="autoSlice" type="checkbox" checked> ⚡ Automatisch slicen</label>
+        <div class="field">
+          <label class="label" for="proxyInput">CORS-proxy (optioneel)</label>
+          <input id="proxyInput" type="url" placeholder="https://jouw-proxy.workers.dev/">
+          <p class="tiny">Voor sites die directe downloads blokkeren. Zie de README voor een gratis eigen proxy.</p>
+        </div>
+        <div class="field">
+          <span class="label">Thingiverse-token</span>
+          <button id="forgetToken" class="ghost wide" type="button">Token wissen</button>
+        </div>
+      </details>
+
+      <button id="sliceBtn" class="slice" type="button" disabled>✨ Slice!</button>
+      <div id="progress" class="progress" hidden><div id="progressBar"></div></div>
+      <p id="sliceMsg" class="small muted" aria-live="polite"></p>
+
+      <div id="result" class="result" hidden>
+        <div class="stats">
+          <div><span>⏱️</span><strong id="rTime">–</strong><small>printtijd</small></div>
+          <div><span>🧵</span><strong id="rFil">–</strong><small>filament</small></div>
+          <div><span>🥞</span><strong id="rLayers">–</strong><small>lagen</small></div>
+        </div>
+        <label class="label" for="fileName">Bestandsnaam</label>
+        <input id="fileName" type="text" spellcheck="false">
+        <button id="downloadBtn" class="download" type="button">⬇️ Download G-code</button>
+        <p class="tiny">Zet het bestand op de SD-kaart van je Ender-3 S1 en kies het op het scherm bij <em>Print</em>. Controleer de eerste laag! 👀</p>
+      </div>
+    </aside>
+  </main>
+
+  <dialog id="helpDialog" class="help">
+    <form method="dialog">
+      <h2>Zo werkt PrintMakkelijk 🖨️</h2>
+      <ol class="steps">
+        <li><b>1</b><div><strong>Kies een model</strong><span>Zoek op Thingiverse in de pagina, pak er een uit de bibliotheek, of download er een op Printables/MakerWorld. Met “Downloads-map volgen” verschijnt het meteen.</span></div></li>
+        <li><b>2</b><div><strong>Zet het goed neer</strong><span>Sleep het model over het bed. Draai het met ↻, leg het plat met ⬇ en verander de grootte met %. Rood = past niet.</span></div></li>
+        <li><b>3</b><div><strong>Slice!</strong><span>De echte CuraEngine draait in je browser (WebAssembly). Je bestanden gaan nergens naartoe.</span></div></li>
+        <li><b>4</b><div><strong>Printen</strong><span>Download de G-code, zet hem op de SD-kaart en start de print op je Ender-3 S1.</span></div></li>
+      </ol>
+      <p class="tiny">Let op de licentie van modellen van internet. Thingiverse is een handelsmerk van UltiMaker; PrintMakkelijk is een onafhankelijk hobbyproject.</p>
+      <button class="primary">Begrepen 👍</button>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+</body>
+</html>

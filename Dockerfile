@@ -1,17 +1,5 @@
-FROM python:3.12-slim
-
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    cura-engine \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY app.py .
-COPY templates ./templates
-COPY static ./static
-RUN mkdir -p /app/uploads /app/output
-
-EXPOSE 8088
-CMD ["python", "app.py"]
+# Optional: host PrintMakkelijk on your own server/NAS. Everything (also slicing)
+# runs in the visitor's browser, so a plain static web server is enough.
+FROM nginx:1.27-alpine
+COPY site /usr/share/nginx/html
+EXPOSE 80
